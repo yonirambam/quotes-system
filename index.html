@@ -482,6 +482,10 @@ function getMsalConfig() {
 async function signIn() {
   try {
     document.getElementById('login-error').textContent = '';
+    if(!msalInstance) {
+      msalInstance = new msal.PublicClientApplication(getMsalConfig());
+      await msalInstance.initialize();
+    }
     const result = await msalInstance.loginPopup({ scopes });
     accessToken = result.accessToken;
     currentUser = result.account;
