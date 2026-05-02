@@ -618,6 +618,87 @@ function reminderToSp(r) {
 // ═══════════════════════════════════════════════════
 // LOCAL STATE
 // ═══════════════════════════════════════════════════
+// PRODUCTS BASE DATA (level ratios — stored in code, prices synced from SP)
+// ═══════════════════════════════════════════════════
+const PRODUCTS_BASE = [
+  {code:491,  name:"100 גרם שווארמה",                                              l1:1.2,       l2:1.3,       l3:1.4},
+  {code:493,  name:"50 גרם שווארמה",                                               l1:null,      l2:null,      l3:null},
+  {code:1015, name:"אורז",                                                          l1:0,         l2:0.2,       l3:0.33},
+  {code:1001, name:"בירה או יין, משקה אחד לכל סועד",                              l1:null,      l2:null,      l3:null},
+  {code:1000, name:"בירה, אוזו ויין הבית ללא הגבלה",                              l1:null,      l2:null,      l3:null},
+  {code:2010, name:"במיה פאקורס",                                                   l1:null,      l2:null,      l3:null},
+  {code:199,  name:"גירוס בצלחת עם צ'ייפס וסלט",                                  l1:null,      l2:null,      l3:null},
+  {code:177,  name:"גירוס חזיר בפיתה",                                              l1:null,      l2:null,      l3:null},
+  {code:1002, name:"חמוצים 100 גרם",                                                l1:0,         l2:0.25,      l3:0.33},
+  {code:179,  name:"חצי גירוס חזיר בפיתה",                                         l1:null,      l2:null,      l3:null},
+  {code:191,  name:"חצי טוסט שוויצירי",                                            l1:null,      l2:null,      l3:null},
+  {code:3,    name:"חצי שווארמה עגל בפיתה",                                        l1:null,      l2:null,      l3:null},
+  {code:589,  name:"חציל מטוגן וסלסת עגבניות",                                     l1:null,      l2:null,      l3:null},
+  {code:187,  name:'טוסט שוויצרי - תפו"א, גבינה מעושנת, מיונז ובצל',             l1:null,      l2:null,      l3:null},
+  {code:1003, name:"טחינה 100 גרם",                                                 l1:0.33,      l2:0.33,      l3:0.33},
+  {code:1005, name:"כדור פלאפל",                                                    l1:2,         l2:3,         l3:4},
+  {code:12,   name:"כרובית בטחינה עם שום שלם וסלסת עגבניות",                      l1:0,         l2:0.25,      l3:0.25},
+  {code:562,  name:"מוס שוקולד וקרמבל",                                            l1:null,      l2:null,      l3:null},
+  {code:1235, name:"מסקרפונה ופרי עונתי",                                          l1:0,         l2:0,         l3:0.33},
+  {code:409,  name:"מרגז חריפות",                                                   l1:null,      l2:null,      l3:null},
+  {code:2002, name:"סחוג 100 גרם",                                                  l1:0.25,      l2:0.25,      l3:0.25},
+  {code:1234, name:"סלט ירקות קצוץ",                                               l1:null,      l2:null,      l3:null},
+  {code:585,  name:"סלט סלק, ארוגולה, גבינת עזים ואגוזים",                        l1:null,      l2:null,      l3:null},
+  {code:587,  name:"סלט עשבים, פרי עונתי, יוגורט ושקדים (ניתן ללא יוגורט)",     l1:0.25,      l2:0.33,      l3:0.25},
+  {code:2007, name:"סלט קיסר (מכיל אנשובי ברוטב)",                               l1:0,         l2:0,         l3:0.25},
+  {code:2008, name:"סלט קיסר עם עוף",                                              l1:null,      l2:null,      l3:null},
+  {code:2011, name:"עטייף תרד",                                                     l1:null,      l2:null,      l3:null},
+  {code:1007, name:"עמבה 100 גרם",                                                  l1:0.142857,  l2:0.142857,  l3:0.166667},
+  {code:3000, name:"פוטטו ווגג'ס גדול",                                            l1:0.3,       l2:0.33,      l3:0.33},
+  {code:2005, name:'פטרוזיליה עם בצל ירוק 100 מ"ל',                              l1:0.2,       l2:0.2,       l3:0.2},
+  {code:285,  name:"פטריות מלך היער ורוטב פאקורס",                               l1:null,      l2:null,      l3:null},
+  {code:1006, name:"פיתה",                                                          l1:1,         l2:1.2,       l3:1.3},
+  {code:2000, name:"פלפל חריף 100 גרם",                                            l1:0.15,      l2:0.25,      l3:0.3},
+  {code:611,  name:"פלפל חריף ממולא בשר",                                          l1:null,      l2:null,      l3:null},
+  {code:2004, name:"פרוסות בצל עם סומק 100 גרם",                                  l1:0.25,      l2:0.33,      l3:0.33},
+  {code:2003, name:"פרוסות עגבנייה 100 גרם",                                       l1:0.25,      l2:0.33,      l3:0.33},
+  {code:11,   name:"צ'יפס גדול",                                                   l1:null,      l2:null,      l3:null},
+  {code:618,  name:"צ'יפס קטן",                                                    l1:null,      l2:null,      l3:null},
+  {code:2001, name:"ציזיקי 100 גרם",                                               l1:0,         l2:0,         l3:0.2},
+  {code:2009, name:"צלוחית לאבנה",                                                  l1:null,      l2:null,      l3:null},
+  {code:273,  name:"צלחת חצי חצי עגל חזיר",                                       l1:null,      l2:null,      l3:null},
+  {code:1004, name:"צלחת חריפים",                                                   l1:null,      l2:null,      l3:null},
+  {code:599,  name:"צלע טלה וירקות גריל",                                          l1:null,      l2:null,      l3:null},
+  {code:181,  name:"קבב על הסכין",                                                  l1:null,      l2:null,      l3:null},
+  {code:353,  name:"קערת סביח צמחוני",                                             l1:null,      l2:null,      l3:null},
+  {code:347,  name:"קערת שווארמה סביח",                                            l1:null,      l2:null,      l3:null},
+  {code:1044, name:"סלט יווני",                                                     l1:null,      l2:null,      l3:0.25},
+  {code:597,  name:"קרם בורלה",                                                     l1:null,      l2:null,      l3:null},
+  {code:2012, name:"קרפצ'יו סלק",                                                   l1:null,      l2:null,      l3:null},
+  {code:1,    name:"שווארמה עגל פיתה",                                              l1:null,      l2:null,      l3:null},
+  {code:7,    name:"שווארמה עגל צלחת עם צ'יפס וסלט",                              l1:null,      l2:null,      l3:null},
+  {code:558,  name:"שומר גריל ופקורינו",                                           l1:null,      l2:null,      l3:null},
+  {code:183,  name:"שיפוד כבד טלה",                                                l1:null,      l2:null,      l3:null},
+  {code:417,  name:"שיפוד כבד עוף וליה",                                           l1:null,      l2:null,      l3:null},
+  {code:300,  name:"שיפוד נתח קצבים",                                              l1:null,      l2:null,      l3:null},
+  {code:603,  name:"שיפוד סוכריות טלה",                                            l1:null,      l2:null,      l3:null},
+  {code:489,  name:"שיפוד פרגית",                                                   l1:null,      l2:null,      l3:null},
+  {code:577,  name:"שיפוד צוואר חזיר וסלט רענן",                                  l1:null,      l2:null,      l3:null},
+  {code:3333, name:"אושפלו",                                                        l1:null,      l2:null,      l3:null},
+  {code:1618, name:"רוסטביף שייטל",                                                l1:null,      l2:null,      l3:0.25},
+];
+
+// Merge SP product (name+price) with base level data
+function mergeProducts(spProducts) {
+  const result = PRODUCTS_BASE.map(base => {
+    const sp = spProducts.find(p => p.code === base.code);
+    return { ...base, _spId: sp?._spId||null, price: sp?.price ?? 0, name: sp?.name || base.name };
+  });
+  // Add any new products from SP not in base
+  spProducts.forEach(sp => {
+    if(!PRODUCTS_BASE.find(b => b.code === sp.code)) {
+      result.push({ ...sp, l1:null, l2:null, l3:null });
+    }
+  });
+  return result;
+}
+
+// ═══════════════════════════════════════════════════
 let customers=[], PRODUCTS=[], quotes=[], reminders=[];
 let editingQuoteId=null, editingCustId=null;
 let qmItems=[], qmLevel=2;
@@ -646,7 +727,7 @@ async function startApp() {
       graphGet(CONFIG.lists.reminders),
     ]);
     customers = custRaw.map(spToCustomer);
-    PRODUCTS  = prodRaw.map(spToProduct);
+    PRODUCTS  = mergeProducts(prodRaw.map(spToProduct));
     quotes    = quotesRaw.map(spToQuote);
     reminders = remRaw.map(spToReminder);
 
