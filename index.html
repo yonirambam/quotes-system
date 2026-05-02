@@ -230,6 +230,7 @@ textarea { resize:vertical; min-height:60px; }
         <div class="nav-item" onclick="showPage('reminders',this)"><span class="nav-icon">🔔</span>תזכורות</div>
       </nav>
       <div class="sidebar-footer">
+        <button class="logout-btn" style="margin-bottom:8px;background:rgba(255,255,255,0.15);color:#fff;border-color:rgba(255,255,255,0.3)" onclick="importInitialData()">⬆️ ייבוא נתונים ראשוני</button>
         <button class="logout-btn" onclick="signOut()">התנתק</button>
       </div>
     </div>
@@ -1152,6 +1153,82 @@ async function deleteReminder(spId){
   setSyncing('saving','מוחק...');
   try{await graphDelete(CONFIG.lists.reminders,spId);reminders=reminders.filter(r=>r._spId!==spId);setSyncing('ok','מסונכרן');renderReminders();}
   catch(e){setSyncing('error','שגיאה');alert('שגיאה: '+e.message);}
+}
+
+// ═══════════════════════════════════════════════════
+// INITIAL DATA IMPORT
+// ═══════════════════════════════════════════════════
+const INITIAL_CUSTOMERS = [
+  {name:"ענת",phone:"054-4498057",address:"",guests:40,source:""},
+  {name:"ניר",phone:"052-2954328",address:"",guests:15,source:""},
+  {name:"מורן",phone:"052-7568673",address:"",guests:50,source:""},
+  {name:"אורן",phone:"054-5204426",address:"",guests:20,source:""},
+  {name:"רוני",phone:"054-2322001",address:"",guests:200,source:""},
+  {name:"לירון WIZ",phone:"052-3440074",address:"אבן גבירול 30",guests:15,source:""},
+  {name:"טניה",phone:"054-5525534",address:"",guests:15,source:""},
+  {name:"דימה",phone:"054-5959320",address:"",guests:15,source:""},
+  {name:"טל",phone:"052-5521922",address:"",guests:0,source:""},
+  {name:"אלון",phone:"054-4441977",address:"",guests:6,source:""},
+  {name:"דני",phone:"054-4224485",address:"",guests:14,source:""},
+  {name:"מרב",phone:"",address:"",guests:25,source:""},
+  {name:"עדי",phone:"054-2478037",address:"",guests:25,source:""},
+  {name:"אמיתי",phone:"054-8222448",address:"",guests:20,source:""},
+  {name:"רותם",phone:"050-2286033",address:"",guests:26,source:""},
+  {name:"מורן (2)",phone:"052-7568673",address:"",guests:70,source:""},
+  {name:"מאיה torq",phone:"052-4468816",address:"",guests:50,source:""},
+  {name:"תמר קליר - אייפלו",phone:"054-9578795",address:"",guests:45,source:""},
+  {name:"חני לאונוב - טנאבל",phone:"052-8025556",address:"",guests:80,source:""},
+  {name:"ירדן",phone:"054-2201324",address:"",guests:20,source:""},
+  {name:"אור",phone:"054-3456972",address:"זיסמן 3 רמת גן",guests:16,source:""},
+  {name:"דנה",phone:"054-4866154",address:"",guests:90,source:""},
+  {name:"טל פלייטיקה",phone:"050-6656063",address:"",guests:12,source:""},
+  {name:"טל HSBC",phone:"054-6687259",address:"",guests:30,source:""},
+  {name:"Jacob",phone:"",address:"",guests:30,source:""},
+  {name:"נעם ביונסה",phone:"052-3655543",address:"",guests:13,source:""},
+  {name:"אלירן",phone:"052-4758882",address:"",guests:30,source:""},
+  {name:"יואב",phone:"054-6500902",address:"",guests:12,source:""},
+  {name:"צחי כהן",phone:"052-5712363",address:"",guests:13,source:""},
+  {name:"yam nossen",phone:"054-8314485",address:"",guests:17,source:""},
+  {name:"נעה",phone:"054-2582300",address:"הרצליה",guests:12,source:""},
+];
+
+async function importInitialData() {
+  if(!confirm('פעולה זו תייבא את כל הלקוחות והמוצרים ל-SharePoint.\nאם כבר יבאת — יווצרו כפילויות.\nלהמשיך?')) return;
+
+  const loading = document.getElementById('loading-screen');
+  const loadingDiv = loading.querySelector('div:last-child');
+  document.getElementById('app-screen').style.display = 'none';
+  loading.style.display = 'flex';
+
+  let done = 0;
+  const total = INITIAL_CUSTOMERS.length + PRODUCTS_BASE.filter(p=>p.code>0).length;
+
+  try {
+    // Import customers
+    loadingDiv.textContent = 'מייבא לקוחות...';
+    for(const c of INITIAL_CUSTOMERS) {
+      await graphPost(CONFIG.lists.customers, customerToSp(c));
+      done++;
+      loadingDiv.textContent = `מייבא... ${done}/${total}`;
+    }
+
+    // Import products
+    loadingDiv.textContent = 'מייבא מוצרים...';
+    for(const p of PRODUCTS_BASE) {
+      if(!p.code) continue;
+      await graphPost(CONFIG.lists.products, productToSp({name:p.name, code:p.code, price:0}));
+      done++;
+      loadingDiv.textContent = `מייבא... ${done}/${total}`;
+    }
+
+    loadingDiv.textContent = 'הייבוא הושלם! טוען נתונים...';
+    await startApp();
+  } catch(e) {
+    loading.innerHTML = `<div style="color:var(--danger);padding:20px;text-align:center">
+      <div>שגיאה בייבוא: ${e.message}</div>
+      <button onclick="location.reload()" class="btn" style="margin-top:16px">נסה שוב</button>
+    </div>`;
+  }
 }
 
 // ═══════════════════════════════════════════════════
