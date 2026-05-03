@@ -551,7 +551,8 @@ const CONFIG = {
                  status:'_x05e1__x05d8__x05d8__x05d5__x05', notes:'_x05d4__x05e2__x05e8__x05d4_' },
     reminders: { subject:'Title', custId:'_x05de__x05e1__x05e4__x05e8__x05', custName:'_x05e9__x05dd_',
                  date:'_x05ea__x05d0__x05e8__x05d9__x05', desc:'_x05ea__x05d9__x05d0__x05d5__x05',
-                 owner:'_x05de__x05de__x05d5__x05e0__x05', status:'_x05e1__x05d8__x05d8__x05d5__x05' },
+                 owner:'_x05de__x05de__x05d5__x05e0__x05', status:'_x05e1__x05d8__x05d8__x05d5__x05',
+                 eventId:'_x05de__x05d6__x05d4__x05d4__x05' },
   }
 };
 
@@ -695,12 +696,14 @@ function spToReminder(f) {
   return { _spId:f._spId, id:f._spId, subject:f[C.reminders.subject]||'',
     customerId:f[C.reminders.custId]||'', customerName:f[C.reminders.custName]||'',
     date:(f[C.reminders.date]||'').split('T')[0], desc:f[C.reminders.desc]||'',
-    owner:f[C.reminders.owner]||'', status:f[C.reminders.status]||'פתוח' };
+    owner:f[C.reminders.owner]||'', status:f[C.reminders.status]||'פתוח',
+    eventId:f[C.reminders.eventId]||'' };
 }
 function reminderToSp(r) {
   return { [C.reminders.subject]:r.subject, [C.reminders.custId]:String(r.customerId||''),
     [C.reminders.custName]:r.customerName||'', [C.reminders.date]:r.date||null,
-    [C.reminders.desc]:r.desc||'', [C.reminders.owner]:r.owner||'', [C.reminders.status]:r.status };
+    [C.reminders.desc]:r.desc||'', [C.reminders.owner]:r.owner||'',
+    [C.reminders.status]:r.status, [C.reminders.eventId]:r.eventId||'' };
 }
 
 // ═══════════════════════════════════════════════════
@@ -976,9 +979,13 @@ function renderReminders() {
       <div style="flex:1">
         <div style="font-weight:500;font-size:13px">${r.subject} — ${r.customerName}</div>
         <div style="font-size:12px;color:var(--text2)">${r.date}${r.owner?' | ממונה: '+r.owner:''}${r.desc?' | '+r.desc:''}</div>
+        ${r.eventId?`<div style="font-size:11px;color:var(--accent)">📅 מסונכרן ליומן</div>`:''}
       </div>
       ${bx(r.status)}
-      <button class="btn btn-sm" onclick="addToCalendar('${r._spId}')" style="margin-right:4px" title="הוסף ליומן Outlook">📅</button>
+      ${r.eventId
+        ? `<button class="btn btn-sm btn-danger" onclick="cancelCalendarEvent('${r._spId}')" style="margin-right:4px" title="בטל אירוע ביומן">🚫</button>`
+        : `<button class="btn btn-sm" onclick="addToCalendar('${r._spId}')" style="margin-right:4px" title="הוסף ליומן Outlook">📅</button>`
+      }
       <button class="btn btn-sm" onclick="toggleReminder('${r._spId}')" style="margin-right:4px">${r.status==='פתוח'?'✓ סגור':'↩ פתח'}</button>
       <button class="btn btn-sm btn-danger" onclick="deleteReminder('${r._spId}')">🗑</button>
     </div>`).join('')||'<p class="empty-state">אין תזכורות</p>';
@@ -988,9 +995,8 @@ async function addToCalendar(spId) {
   const r = reminders.find(x=>x._spId===spId);
   if(!r) return;
 
-  // Show team selector modal
   const selected = await showTeamSelector(r.owner);
-  if(selected === null) return; // cancelled
+  if(selected === null) return;
 
   const attendees = selected.map(m => ({
     emailAddress: { address: m.email, name: m.name },
@@ -998,13 +1004,14 @@ async function addToCalendar(spId) {
   }));
 
   const date = r.date || new Date().toISOString().split('T')[0];
+
   const event = {
     subject: `תזכורת: ${r.subject} — ${r.customerName}`,
     body: { contentType: 'text', content: r.desc || `תזכורת עבור לקוח: ${r.customerName}` },
     start: { dateTime: `${date}T09:00:00`, timeZone: 'Israel Standard Time' },
     end:   { dateTime: `${date}T09:30:00`, timeZone: 'Israel Standard Time' },
     isReminderOn: true,
-    reminderMinutesBeforeStart: 60,
+    reminderMinutesBeforeStart: window._reminderMinutes || 60,
     ...(attendees.length > 0 && { attendees }),
   };
 
@@ -1017,12 +1024,48 @@ async function addToCalendar(spId) {
       body: JSON.stringify(event)
     });
     if(!res.ok) throw new Error(await res.text());
+    const created = await res.json();
+
+    // Save event ID to SharePoint
+    r.eventId = created.id;
+    await graphPatch(CONFIG.lists.reminders, spId, { [C.reminders.eventId]: created.id });
+
     setSyncing('ok','מסונכרן');
     const names = attendees.map(a=>a.emailAddress.name).join(', ');
     alert(`✅ האירוע נוסף ליומן שלך${attendees.length>0?' והוזמנה נשלחה ל: '+names:''}!`);
+    renderReminders();
   } catch(e) {
     setSyncing('error','שגיאה');
     alert('שגיאה בהוספה ליומן: '+e.message);
+  }
+}
+
+async function cancelCalendarEvent(spId) {
+  const r = reminders.find(x=>x._spId===spId);
+  if(!r || !r.eventId) return;
+  if(!confirm('לבטל את האירוע ביומן ולשלוח הודעת ביטול לכל המשתתפים?')) return;
+
+  setSyncing('saving','מבטל אירוע...');
+  try {
+    const token = await getToken();
+    // Cancel sends cancellation email to all attendees
+    const res = await fetch(`https://graph.microsoft.com/v1.0/me/events/${r.eventId}/cancel`, {
+      method: 'POST',
+      headers: { Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
+      body: JSON.stringify({ comment: `האירוע "${r.subject}" בוטל.` })
+    });
+    if(!res.ok) throw new Error(await res.text());
+
+    // Clear event ID from SP
+    r.eventId = '';
+    await graphPatch(CONFIG.lists.reminders, spId, { [C.reminders.eventId]: '' });
+
+    setSyncing('ok','מסונכרן');
+    alert('✅ האירוע בוטל והודעת ביטול נשלחה לכל המשתתפים.');
+    renderReminders();
+  } catch(e) {
+    setSyncing('error','שגיאה');
+    alert('שגיאה בביטול האירוע: '+e.message);
   }
 }
 
@@ -1046,18 +1089,30 @@ function showTeamSelector(defaultOwner) {
     modal.id = 'team-selector-modal';
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center';
     modal.innerHTML = `
-      <div style="background:#fff;border-radius:10px;width:340px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden">
+      <div style="background:#fff;border-radius:10px;width:360px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.18);overflow:hidden">
         <div style="padding:16px 20px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
-          <strong style="font-size:15px">בחר נמענים להזמנה</strong>
+          <strong style="font-size:15px">הוסף ליומן Outlook</strong>
           <button onclick="document.getElementById('team-selector-modal').remove();tsResolve(null)" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999">✕</button>
         </div>
         <div style="padding:16px 20px">
-          <p style="font-size:12px;color:#888;margin-bottom:12px">ניתן לבחור מספר אנשים. האירוע יתווסף ליומן שלך וישלח הזמנה לנבחרים.</p>
+          <p style="font-size:12px;color:#888;margin-bottom:12px">בחר נמענים — יקבלו הזמנה ביומן ובמייל.</p>
           ${TEAM.map(m=>`
             <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;cursor:pointer;font-size:14px">
               <input type="checkbox" value="${m.email}" data-name="${m.name}" ${checked(m.name)} style="width:16px;height:16px;accent-color:#2a5c3f">
               <span><strong>${m.name}</strong> <span style="color:#888;font-size:12px">${m.email}</span></span>
             </label>`).join('')}
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid #eee">
+            <label style="font-size:12px;font-weight:500;color:#5a5a56;display:block;margin-bottom:6px">🔔 תזכורת לפני האירוע</label>
+            <select id="ts-reminder" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit">
+              <option value="15">15 דקות לפני</option>
+              <option value="30">30 דקות לפני</option>
+              <option value="60" selected>שעה לפני</option>
+              <option value="120">שעתיים לפני</option>
+              <option value="1440">יום לפני</option>
+              <option value="2880">יומיים לפני</option>
+              <option value="10080">שבוע לפני</option>
+            </select>
+          </div>
         </div>
         <div style="padding:12px 20px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end">
           <button onclick="document.getElementById('team-selector-modal').remove();tsResolve(null)" style="padding:8px 16px;border-radius:6px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px">ביטול</button>
@@ -1069,6 +1124,7 @@ function showTeamSelector(defaultOwner) {
     window.tsConfirm = () => {
       const checked = [...document.querySelectorAll('#team-selector-modal input[type=checkbox]:checked')];
       const selected = checked.map(cb => ({ name: cb.dataset.name, email: cb.value }));
+      window._reminderMinutes = parseInt(document.getElementById('ts-reminder').value) || 60;
       document.getElementById('team-selector-modal').remove();
       resolve(selected);
     };
