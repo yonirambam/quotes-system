@@ -178,11 +178,17 @@ textarea { resize:vertical; min-height:60px; }
 .qp-footer-note { margin-top:18px; font-size:11px; color:#aaa; border-top:1px solid #eee; padding-top:10px; }
 
 @media print {
-  #login-screen,#loading-screen,#app-screen .sidebar,#app-screen .main .topbar { display:none !important; }
-  .modal-overlay { position:static !important; display:block !important; background:none !important; }
-  .modal { width:100% !important; max-width:100% !important; box-shadow:none !important; }
-  .modal-header,.modal-footer { display:none !important; }
-  #preview-modal { display:block !important; position:static !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  body > * { display:none !important; }
+  #preview-modal { display:block !important; position:fixed !important; inset:0 !important; background:white !important; z-index:9999 !important; overflow:visible !important; }
+  #preview-modal .modal-overlay { display:block !important; position:static !important; background:none !important; }
+  #preview-modal .modal { width:100% !important; max-width:100% !important; box-shadow:none !important; border:none !important; max-height:none !important; overflow:visible !important; }
+  #preview-modal .modal-header, #preview-modal .modal-footer { display:none !important; }
+  #preview-modal .modal-body { padding:0 !important; overflow:visible !important; }
+  .qp-wrap { padding:20px 28px !important; }
+  /* Hide scrollbar arrows, URL, title */
+  ::-webkit-scrollbar { display:none !important; }
+  @page { margin:10mm; size:A4; }
 }
 
 .product-edit-input { padding:4px 6px !important; font-size:12px !important; }
@@ -432,7 +438,7 @@ textarea { resize:vertical; min-height:60px; }
     <div class="modal-body" id="preview-content"></div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('preview-modal')">סגור</button>
-      <button class="btn btn-primary" onclick="window.print()">🖨️ הדפסה</button>
+      <button class="btn btn-primary" onclick="printQuote()">🖨️ הדפסה</button>
     </div>
   </div>
 </div>
@@ -1248,6 +1254,42 @@ function filterCustomers(q){renderCustomers(customers.filter(c=>c.name.includes(
 function filterProducts(q){renderProducts(PRODUCTS.filter(p=>p.name.includes(q)||String(p.code).includes(q)));}
 
 function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+function printQuote(){
+  // Temporarily move preview content to body for clean print
+  const modal = document.getElementById('preview-modal');
+  const content = document.getElementById('preview-content').innerHTML;
+  const printWin = window.open('','_blank','width=800,height=600');
+  printWin.document.write(`<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<title>הצעת מחיר</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+body { font-family:Arial,sans-serif; background:#fff; color:#1a1a18; direction:rtl; }
+@page { margin:12mm; size:A4; }
+.qp-wrap { padding:20px 28px; }
+.qp-logo { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+.qp-divider { height:3px; background:#2a5c3f; border-radius:2px; margin:12px 0 18px; }
+.qp-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:5px 24px; margin-bottom:18px; font-size:13px; }
+.qp-info-grid span { color:#5a5a56; }
+.qp-info-grid strong { color:#1a1a18; }
+.qp-table { width:100%; border-collapse:collapse; font-size:13px; }
+.qp-table th { background:#2a5c3f; color:#fff; padding:9px 12px; text-align:right; }
+.qp-table td { padding:7px 12px; border-bottom:1px solid #eee; }
+.qp-totals { margin-top:16px; border-top:2px solid #2a5c3f; padding-top:12px; }
+.qp-totals div { font-size:13px; color:#5a5a56; margin-bottom:3px; }
+.qp-totals .final { font-size:18px; font-weight:700; color:#2a5c3f; }
+.qp-footer-note { margin-top:18px; font-size:11px; color:#aaa; border-top:1px solid #eee; padding-top:10px; }
+</style>
+</head>
+<body>${content}</body>
+</html>`);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(()=>{ printWin.print(); printWin.close(); }, 500);
+}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
 </script>
 </body>
