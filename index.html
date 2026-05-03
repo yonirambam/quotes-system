@@ -192,6 +192,87 @@ textarea { resize:vertical; min-height:60px; }
 }
 
 .product-edit-input { padding:4px 6px !important; font-size:12px !important; }
+
+/* ══════════════════════════════════════
+   MOBILE RESPONSIVE
+══════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* ── Layout ── */
+  .app { flex-direction:column; }
+  .sidebar { width:100%; height:auto; flex-direction:row; flex-shrink:0; position:fixed; bottom:0; top:auto; z-index:50; border-top:1px solid rgba(255,255,255,0.15); }
+  .sidebar-logo, .sidebar-user, .sidebar-footer { display:none; }
+  .sidebar-nav { display:flex; flex-direction:row; padding:0; overflow-x:auto; width:100%; }
+  .nav-item { flex:1; flex-direction:column; gap:3px; padding:8px 4px; font-size:10px; text-align:center; border-right:none !important; border-top:3px solid transparent; min-width:0; }
+  .nav-item.active { border-top-color:#fff; border-right:none; }
+  .nav-icon { font-size:20px; width:auto; }
+  .main { margin-right:0; padding-bottom:70px; }
+  .topbar { padding:0 14px; height:48px; }
+  .topbar-title { font-size:15px; }
+  .topbar-right { gap:6px; }
+  .sync-indicator { display:none; }
+  #topbar-action { padding:6px 12px; font-size:12px; }
+  .content { padding:14px; }
+
+  /* ── Stats grid ── */
+  .stats-grid { grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .stat-card { padding:12px 14px; }
+  .stat-value { font-size:20px; }
+  .stat-label { font-size:10px; }
+
+  /* ── Dashboard grid ── */
+  .dashboard-grid { grid-template-columns:1fr; }
+
+  /* ── Tables → Cards ── */
+  .table-wrap { overflow-x:visible; }
+  table { display:block; }
+  thead { display:none; }
+  tbody { display:block; }
+  tr { display:block; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:10px; padding:12px; }
+  tr:hover td { background:transparent; }
+  td { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  td:last-child { border-bottom:none; padding-top:8px; justify-content:flex-end; gap:8px; }
+  td:before { content:attr(data-label); font-size:11px; color:var(--text2); font-weight:500; flex-shrink:0; margin-left:8px; }
+  td[data-label=""] { display:none; }
+  td[data-label="פעולות"]:before { display:none; }
+
+  /* ── Modals ── */
+  .modal { width:100% !important; max-width:100% !important; max-height:95vh; border-radius:var(--radius) var(--radius) 0 0; margin-top:auto; }
+  .modal-overlay.open { align-items:flex-end; }
+  .modal-header { padding:14px 16px; }
+  .modal-body { padding:14px 16px; }
+  .modal-footer { padding:12px 16px; }
+
+  /* ── Forms ── */
+  .form-row { grid-template-columns:1fr; gap:0; }
+  .level-selector { gap:6px; }
+  .level-btn { font-size:11px; padding:7px 2px; }
+  .inline-input { width:70px !important; }
+
+  /* ── Quote items table ── */
+  .items-tbl thead { display:none; }
+  .items-tbl tbody { display:block; }
+  .items-tbl tr { display:grid; grid-template-columns:1fr auto; grid-template-rows:auto auto; gap:6px; background:var(--surface2); border-radius:var(--radius-sm); padding:8px; margin-bottom:8px; border:none; }
+  .items-tbl td { display:block; padding:0; border:none; font-size:12px; }
+  .items-tbl td:before { display:none; }
+  .items-tbl td:nth-child(1) { grid-column:1/2; grid-row:1; }
+  .items-tbl td:nth-child(2) { display:none; }
+  .items-tbl td:nth-child(3) { grid-column:2/3; grid-row:1; display:flex; align-items:center; }
+  .items-tbl td:nth-child(4) { grid-column:1/2; grid-row:2; font-weight:600; color:var(--accent); font-size:13px; }
+  .items-tbl td:nth-child(5) { display:none; }
+  .items-tbl td:nth-child(6) { grid-column:2/3; grid-row:2; display:flex; justify-content:flex-end; }
+
+  /* ── Top5 ── */
+  .top5-item { padding:6px 0; }
+
+  /* ── Buttons ── */
+  .btn { padding:8px 14px; }
+  .btn-sm { padding:6px 10px; font-size:12px; }
+
+  /* ── Login ── */
+  .login-card { width:90vw; padding:32px 24px; }
+}
+
 </style>
 </head>
 <body>
@@ -829,8 +910,13 @@ function renderDashboard() {
   document.getElementById('s-pending').textContent = '₪'+quotes.filter(q=>q.status==='ממתין לתשלום').reduce((s,q)=>s+q.total,0).toLocaleString();
   document.getElementById('s-reminders').textContent = reminders.filter(r=>r.status==='פתוח').length;
   document.getElementById('db-orders').innerHTML = [...quotes].reverse().slice(0,6).map(q=>`<tr>
-    <td>${q._spId||''}</td><td><strong>${q.customerName}</strong></td><td>${q.eventDate||'—'}</td>
-    <td>${lvlBadge(q.priceLevel)}</td><td>${q.guests}</td><td>₪${q.total.toLocaleString()}</td><td>${bx(q.status)}</td>
+    <td data-label="#">${q._spId||''}</td>
+    <td data-label="לקוח"><strong>${q.customerName}</strong></td>
+    <td data-label="תאריך אירוע">${q.eventDate||'—'}</td>
+    <td data-label="דרגה">${lvlBadge(q.priceLevel)}</td>
+    <td data-label="סועדים">${q.guests}</td>
+    <td data-label="סכום">₪${q.total.toLocaleString()}</td>
+    <td data-label="סטטוס">${bx(q.status)}</td>
   </tr>`).join('')||`<tr><td colspan="7" class="empty-state">אין הצעות</td></tr>`;
   const rv={};quotes.forEach(q=>{rv[q.customerName]=(rv[q.customerName]||0)+q.total;});
   document.getElementById('db-top5').innerHTML=Object.entries(rv).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([n,r],i)=>`
@@ -841,11 +927,16 @@ function renderDashboard() {
 
 function renderQuotes(list) {
   document.getElementById('quotes-body').innerHTML=list.map(q=>`<tr>
-    <td style="font-size:11px;color:var(--text3)">${q._spId}</td><td><strong>${q.customerName}</strong></td><td>${q.address||'—'}</td>
-    <td>${q.quoteDate||'—'}</td><td>${q.eventDate||'—'}</td>
-    <td>${lvlBadge(q.priceLevel)}</td><td>${q.guests}</td>
-    <td><strong>₪${q.total.toLocaleString()}</strong></td><td>${bx(q.status)}</td>
-    <td style="white-space:nowrap">
+    <td data-label="#" style="font-size:11px;color:var(--text3)">${q._spId}</td>
+    <td data-label="לקוח"><strong>${q.customerName}</strong></td>
+    <td data-label="כתובת">${q.address||'—'}</td>
+    <td data-label="תאריך הצעה">${q.quoteDate||'—'}</td>
+    <td data-label="תאריך אירוע">${q.eventDate||'—'}</td>
+    <td data-label="דרגה">${lvlBadge(q.priceLevel)}</td>
+    <td data-label="סועדים">${q.guests}</td>
+    <td data-label="סכום"><strong>₪${q.total.toLocaleString()}</strong></td>
+    <td data-label="סטטוס">${bx(q.status)}</td>
+    <td data-label="פעולות" style="white-space:nowrap">
       <button class="btn btn-sm" onclick="viewQuote('${q._spId}')">👁</button>
       <button class="btn btn-sm" onclick="editQuote('${q._spId}')" style="margin-right:4px">✏️</button>
       <button class="btn btn-sm btn-danger" onclick="deleteQuote('${q._spId}')" style="margin-right:4px">🗑</button>
@@ -856,9 +947,13 @@ function renderQuotes(list) {
 function renderCustomers(list) {
   const cq={};quotes.forEach(q=>{if(!cq[q.customerId])cq[q.customerId]={n:0,r:0};cq[q.customerId].n++;cq[q.customerId].r+=q.total;});
   document.getElementById('customers-body').innerHTML=list.map(c=>`<tr>
-    <td><strong>${c.name}</strong></td><td>${c.phone||'—'}</td><td>${c.address||'—'}</td><td>${c.guests||'—'}</td>
-    <td>${(cq[c._spId]||{n:0}).n}</td><td>₪${((cq[c._spId]||{r:0}).r).toLocaleString()}</td>
-    <td style="white-space:nowrap">
+    <td data-label="שם"><strong>${c.name}</strong></td>
+    <td data-label="טלפון">${c.phone||'—'}</td>
+    <td data-label="כתובת">${c.address||'—'}</td>
+    <td data-label="סועדים">${c.guests||'—'}</td>
+    <td data-label="הצעות">${(cq[c._spId]||{n:0}).n}</td>
+    <td data-label="סכום מצטבר">₪${((cq[c._spId]||{r:0}).r).toLocaleString()}</td>
+    <td data-label="פעולות" style="white-space:nowrap">
       <button class="btn btn-sm" onclick="newQuoteFor('${c._spId}')">+ הצעה</button>
       <button class="btn btn-sm" onclick="editCustomer('${c._spId}')" style="margin-right:4px">✏️</button>
     </td>
@@ -867,10 +962,10 @@ function renderCustomers(list) {
 
 function renderProducts(list) {
   document.getElementById('products-body').innerHTML=list.map(p=>`<tr id="prod-row-${p._spId}">
-    <td>${p.code}</td>
-    <td id="prod-name-${p._spId}">${p.name}</td>
-    <td id="prod-price-${p._spId}">₪${p.price}</td>
-    <td><button class="btn btn-sm" onclick="editProduct('${p._spId}')">✏️ ערוך</button></td>
+    <td data-label="ברקוד">${p.code}</td>
+    <td data-label="שם פריט" id="prod-name-${p._spId}">${p.name}</td>
+    <td data-label="מחיר ₪" id="prod-price-${p._spId}">₪${p.price}</td>
+    <td data-label="פעולות"><button class="btn btn-sm" onclick="editProduct('${p._spId}')">✏️ ערוך</button></td>
   </tr>`).join('');
 }
 
