@@ -1129,10 +1129,10 @@ function showPreview(q){
       <div class="qp-info-grid">
         <div><span>לכבוד: </span><strong>${q.customerName}</strong></div>
         <div><span>כתובת: </span><strong>${q.address||'—'}</strong></div>
-        <div><span>תאריך האירוע: </span><strong>${q.eventDate||'—'}</strong></div>
-        <div><span>שעה: </span><strong>${q.eventTime||'—'}</strong></div>
+        <div><span>תאריך האירוע: </span><strong style="direction:ltr;display:inline-block">${q.eventDate||'—'}</strong></div>
+        <div><span>שעה: </span><strong style="direction:ltr;display:inline-block">${q.eventTime||'—'}</strong></div>
         <div><span>מספר סועדים: </span><strong>${q.guests}</strong></div>
-        <div><span>תאריך הצעה: </span><strong>${q.quoteDate||''}</strong></div>
+        <div><span>תאריך הצעה: </span><strong style="direction:ltr;display:inline-block">${q.quoteDate||''}</strong></div>
       </div>
       <table class="qp-table">
         <thead><tr><th>מוצר</th><th style="text-align:center">כמות</th><th style="text-align:center">מחיר ₪</th><th style="text-align:center">סה"כ ₪</th></tr></thead>
