@@ -426,7 +426,10 @@ textarea { resize:vertical; min-height:60px; }
       </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <span style="font-size:13px;font-weight:600">פריטים</span>
-        <button class="btn btn-sm" onclick="addManualItem()">+ הוסף פריט</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm" onclick="addManualItem()">+ מהרשימה</button>
+          <button class="btn btn-sm" style="background:var(--accent-bg);color:var(--accent-text);border-color:var(--accent)" onclick="addCustomItem()">+ מנה חופשית</button>
+        </div>
       </div>
       <div class="table-wrap"><table class="items-tbl">
         <thead><tr><th style="width:38%">מוצר</th><th style="width:11%;text-align:center">מחיר ₪</th><th style="width:13%;text-align:center">כמות</th><th style="width:12%;text-align:center">סה"כ ₪</th><th style="width:20%">הערה</th><th style="width:6%"></th></tr></thead>
@@ -1187,14 +1190,19 @@ function onParamsChange(){if(qmLevel>0) buildFromLevel();}
 function setLevel(lvl){qmLevel=lvl;updateLvlBtns();if(lvl>0)buildFromLevel();}
 function updateLvlBtns(){for(let i=0;i<=3;i++)document.getElementById('lvl-'+i).classList.toggle('active',i===qmLevel);}
 function buildFromLevel(){qmItems=buildItemsFromLevel(qmLevel,parseInt(document.getElementById('qm-guests').value)||12);renderQmItems();calcTotal();}
-function addManualItem(){qmItems.push({code:'',name:'',qty:1,price:0,total:0,note:'',autoQty:null});renderQmItems();}
+function addManualItem(){qmItems.push({code:'',name:'',qty:1,price:0,total:0,note:'',autoQty:null,custom:false});renderQmItems();}
+function addCustomItem(){qmItems.push({code:'custom_'+Date.now(),name:'',qty:1,price:0,total:0,note:'',autoQty:null,custom:true});renderQmItems();}
+
 function renderQmItems(){
   document.getElementById('qm-items-body').innerHTML=qmItems.map((item,i)=>`<tr>
-    <td><select onchange="onProdSel(${i},this.value)" style="width:100%">
-      <option value="">-- בחר מוצר --</option>
-      ${PRODUCTS.map(p=>`<option value="${p.code}" ${p.code==item.code?'selected':''}>${p.name}</option>`).join('')}
-    </select></td>
-    <td style="text-align:center">₪${item.price}</td>
+    <td>${item.custom
+      ? `<input type="text" value="${item.name||''}" placeholder="שם המנה החופשית..." style="width:100%;font-size:12px" oninput="qmItems[${i}].name=this.value"/>`
+      : `<select onchange="onProdSel(${i},this.value)" style="width:100%">
+          <option value="">-- בחר מוצר --</option>
+          ${PRODUCTS.map(p=>`<option value="${p.code}" ${p.code==item.code?'selected':''}>${p.name}</option>`).join('')}
+        </select>`
+    }</td>
+    <td style="text-align:center"><input type="number" value="${item.price}" min="0" style="width:60px;text-align:center;font-size:12px" oninput="updPrice(${i},this.value)"/></td>
     <td><input type="number" value="${item.qty}" min="0" style="width:60px;text-align:center" oninput="updQty(${i},this.value)"/>
     ${item.autoQty!=null?`<div class="qty-auto">אוטו: ${item.autoQty}</div>`:''}</td>
     <td style="text-align:center;font-weight:500" id="it-${i}">₪${item.total}</td>
@@ -1205,6 +1213,7 @@ function renderQmItems(){
 }
 function onProdSel(i,code){const p=PRODUCTS.find(x=>x.code==code);if(p){Object.assign(qmItems[i],{code:p.code,name:p.name,price:p.price,total:qmItems[i].qty*p.price});}renderQmItems();}
 function updQty(i,v){qmItems[i].qty=parseInt(v)||0;qmItems[i].total=qmItems[i].qty*qmItems[i].price;const el=document.getElementById('it-'+i);if(el)el.textContent='₪'+qmItems[i].total;calcTotal();}
+function updPrice(i,v){qmItems[i].price=parseFloat(v)||0;qmItems[i].total=qmItems[i].qty*qmItems[i].price;const el=document.getElementById('it-'+i);if(el)el.textContent='₪'+qmItems[i].total;calcTotal();}
 function rmItem(i){qmItems.splice(i,1);renderQmItems();}
 function calcTotal(){
   const sub=qmItems.reduce((s,i)=>s+(i.total||0),0);
